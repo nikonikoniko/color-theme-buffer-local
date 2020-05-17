@@ -5,6 +5,62 @@
 ;;(vt-dev-load-theme-buffer-local 'tango vt-buf-advice)
 ;;
 ;; and from mini-buffer as well
+
+
+
+(defun custom-theme-buffer-local-spec-attrs (spec)
+  (let* ((spec (face-spec-choose spec))
+         attrs)
+    (while spec
+      (when (assq (car spec) face-x-resources)
+        (push (car spec) attrs)
+        (push (cadr spec) attrs))
+      (setq spec (cddr spec)))
+    (nreverse attrs)))
+
+(defun custom-theme-buffer-local-recalc-face (face buffer)
+  (with-current-buffer buffer
+    (let (attrs)
+    
+    (if (get face 'face-alias)
+        (setq face (get face 'face-alias)))
+    
+    ;; first set the default spec
+    (or (get face 'customized-face)
+        (get face 'saved-face)
+        (setq attrs
+              (append
+               attrs
+               (custom-theme-buffer-local-spec-attrs
+                (face-default-spec face)))))
+
+    (let ((theme-faces (reverse (get face 'theme-face))))
+      (dolist (spec theme-faces)
+        (setq attrs (append
+                     attrs
+                     (custom-theme-buffer-local-spec-attrs (cadr spec))))))
+
+    (and (get face 'face-override-spec)
+         (setq attrs (append
+                      attrs
+                      (custom-theme-buffer-local-spec-attrs
+                       (get face 'face-override-spec)))))
+
+    (face-remap-set-base face attrs))))
+
+(defun custom-theme-buffer-local-recalc-variable (variable buffer)
+  (with-current-buffer buffer
+    (make-variable-buffer-local variable)
+    (let ((valspec (custom-variable-theme-value variable)))
+      (if valspec
+          (put variable 'saved-value valspec)
+        (setq valspec (get variable 'standard-value)))
+      (if (and valspec
+               (or (get variable 'force-value)
+                   (default-boundp variable)))
+          (funcall (or (get variable 'custom-set) 'set-default) variable
+                   (eval (car valspec)))))))
+
 (defun load-theme-buffer-local (theme &optional buffer no-confirm no-enable)
   "Load an Emacs24 THEME only in BUFFER."
   (interactive
