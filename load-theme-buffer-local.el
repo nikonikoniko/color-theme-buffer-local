@@ -32,6 +32,9 @@
       (ad-enable-advice 'custom-theme-recalc-face 'around 'vt-recalc-face-around)
       (ad-activate 'custom-theme-recalc-face)
       (load-theme theme))
+
+(provide 'load-theme-buffer-local)
+
   ;;vt-end
   ;; (flet ((custom-theme-recalc-face
   ;;         (symbol) (custom-theme-buffer-local-recalc-face symbol buffer))
